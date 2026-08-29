@@ -3,5 +3,6 @@
 from audittrail_api.auth.models import APIKey
 from audittrail_api.events.models import AuditEvent
 from audittrail_api.organizations.models import Application, Organization
+from audittrail_api.retention.models import RetentionPolicy
 
-__all__ = ["APIKey", "Application", "AuditEvent", "Organization"]
+__all__ = ["APIKey", "Application", "AuditEvent", "Organization", "RetentionPolicy"]
