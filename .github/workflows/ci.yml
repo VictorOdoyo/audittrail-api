@@ -46,3 +46,37 @@ jobs:
           tags: audittrail-api:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: audittrail
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d audittrail"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      AUDITTRAIL_DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/audittrail
+      AUDITTRAIL_AUTO_CREATE_SCHEMA: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.12.5"
+          enable-cache: true
+      - name: Install Python
+        run: uv python install 3.12
+      - name: Install dependencies
+        run: uv sync --locked --dev
+      - name: Apply PostgreSQL migrations
+        run: uv run alembic upgrade head
+      - name: Run PostgreSQL integration tests
+        run: uv run pytest tests/postgres -m postgres
