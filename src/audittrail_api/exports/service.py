@@ -4,6 +4,7 @@ import asyncio
 import csv
 import json
 from collections.abc import Sequence
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -57,9 +58,9 @@ async def generate_export(
     if actor_id := job.filters.get("actor_id"):
         query = query.where(AuditEvent.actor_id == actor_id)
     if occurred_after := job.filters.get("occurred_after"):
-        query = query.where(AuditEvent.occurred_at >= occurred_after)
+        query = query.where(AuditEvent.occurred_at >= datetime.fromisoformat(occurred_after))
     if occurred_before := job.filters.get("occurred_before"):
-        query = query.where(AuditEvent.occurred_at <= occurred_before)
+        query = query.where(AuditEvent.occurred_at <= datetime.fromisoformat(occurred_before))
     events = list(await session.scalars(query.order_by(AuditEvent.occurred_at, AuditEvent.id)))
     rows = [EventRead.from_event(event).model_dump(mode="json") for event in events]
     await asyncio.to_thread(export_directory.mkdir, parents=True, exist_ok=True)
