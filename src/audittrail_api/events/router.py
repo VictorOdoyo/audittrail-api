@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException, Query, Response, status
 from sqlalchemy import select
 
 from audittrail_api.api.dependencies import Session
-from audittrail_api.auth.dependencies import APIKeyAccess, require_scope
+from audittrail_api.auth.dependencies import APIKeyAccess, RateLimitAccess, require_scope
 from audittrail_api.events.integrity import verify_chain
 from audittrail_api.events.models import AuditEvent
 from audittrail_api.events.schemas import (
@@ -31,6 +31,7 @@ async def create_event(
     response: Response,
     session: Session,
     principal: APIKeyAccess,
+    _: RateLimitAccess,
 ) -> EventRead:
     require_scope(principal, "events:write")
     result = await ingest_event(session, principal, payload)
@@ -44,6 +45,7 @@ async def create_event_batch(
     payload: BatchEventCreate,
     session: Session,
     principal: APIKeyAccess,
+    _: RateLimitAccess,
 ) -> BatchIngestionResponse:
     """Ingest a bounded batch and report each item's outcome independently."""
 
