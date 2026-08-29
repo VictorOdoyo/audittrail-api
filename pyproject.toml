@@ -1,6 +1,6 @@
 [project]
 name = "audittrail-api"
-version = "0.1.0"
+version = "1.0.0"
 description = "A production-oriented, multi-tenant audit event platform"
 readme = "README.md"
 authors = [
