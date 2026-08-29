@@ -46,6 +46,9 @@ dev = [
 addopts = "--strict-markers --strict-config"
 asyncio_mode = "auto"
 testpaths = ["tests"]
+markers = [
+    "postgres: tests that require a PostgreSQL service",
+]
 
 [tool.coverage.run]
 branch = true
