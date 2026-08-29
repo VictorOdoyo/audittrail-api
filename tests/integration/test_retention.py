@@ -38,6 +38,10 @@ def test_retention_policy_can_be_created_and_updated() -> None:
             f"/api/v1/organizations/{organization_id}/retention",
             headers=ADMIN_HEADERS,
         )
+        preview = client.get(
+            f"/api/v1/organizations/{organization_id}/retention/preview",
+            headers=ADMIN_HEADERS,
+        )
 
     assert missing.status_code == 404
     assert created.status_code == 200
@@ -45,6 +49,9 @@ def test_retention_policy_can_be_created_and_updated() -> None:
     assert updated.json()["legal_hold"] is True
     assert updated.json()["updated_by"] == "auditor-2"
     assert fetched.json()["id"] == updated.json()["id"]
+    assert preview.status_code == 200
+    assert preview.json()["legal_hold"] is True
+    assert preview.json()["candidate_count"] == 0
 
 
 def test_retention_policy_rejects_unsafe_window_and_unknown_tenant() -> None:
