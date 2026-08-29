@@ -3,7 +3,9 @@
 from fastapi import APIRouter, HTTPException, status
 
 from audittrail_api.api.dependencies import RuntimeSettings, Session
-from audittrail_api.identity.schemas import AccessToken, LoginRequest
+from audittrail_api.identity.dependencies import CurrentUser
+from audittrail_api.identity.models import User
+from audittrail_api.identity.schemas import AccessToken, LoginRequest, UserRead
 from audittrail_api.identity.service import authenticate_user
 from audittrail_api.identity.tokens import create_access_token
 
@@ -30,3 +32,10 @@ async def login(
         settings.jwt_access_minutes,
     )
     return AccessToken(access_token=token, expires_in=settings.jwt_access_minutes * 60)
+
+
+@router.get("/me", response_model=UserRead)
+async def current_identity(user: CurrentUser) -> User:
+    """Return the active user represented by the bearer token."""
+
+    return user

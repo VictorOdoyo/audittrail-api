@@ -30,6 +30,14 @@ def test_user_can_exchange_password_for_access_token() -> None:
     )
     assert str(claims.user_id) == user["id"]
 
+    with TestClient(app) as client:
+        identity = client.get(
+            "/api/v1/auth/me",
+            headers={"Authorization": f"Bearer {response.json()['access_token']}"},
+        )
+    assert identity.status_code == 200
+    assert identity.json()["id"] == user["id"]
+
 
 def test_login_rejects_wrong_and_unknown_credentials() -> None:
     with TestClient(app) as client:
@@ -40,3 +48,13 @@ def test_login_rejects_wrong_and_unknown_credentials() -> None:
 
     assert unknown.status_code == 401
     assert unknown.json()["detail"] == "Email or password is incorrect."
+
+
+def test_current_identity_rejects_invalid_token() -> None:
+    with TestClient(app) as client:
+        response = client.get(
+            "/api/v1/auth/me",
+            headers={"Authorization": "Bearer invalid-token"},
+        )
+
+    assert response.status_code == 401
