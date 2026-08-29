@@ -10,6 +10,9 @@ services:
       AUDITTRAIL_REDIS_URL: redis://redis:6379/0
       AUDITTRAIL_EXPORT_DISPATCH_MODE: celery
       AUDITTRAIL_EXPORT_DIRECTORY: /app/exports
+      AUDITTRAIL_RATE_LIMIT_ENABLED: "true"
+      AUDITTRAIL_RATE_LIMIT_REQUESTS: "120"
+      AUDITTRAIL_RATE_LIMIT_WINDOW_SECONDS: "60"
     ports:
       - "8000:8000"
     depends_on:
