@@ -7,6 +7,9 @@ services:
       AUDITTRAIL_ADMIN_TOKEN: local-compose-admin-token
       AUDITTRAIL_API_KEY_PEPPER: local-compose-api-key-pepper
       AUDITTRAIL_AUTO_CREATE_SCHEMA: "true"
+      AUDITTRAIL_REDIS_URL: redis://redis:6379/0
+      AUDITTRAIL_EXPORT_DISPATCH_MODE: celery
+      AUDITTRAIL_EXPORT_DIRECTORY: /app/exports
     ports:
       - "8000:8000"
     depends_on:
@@ -14,6 +17,37 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    volumes:
+      - export_data:/app/exports
+
+  worker:
+    build: .
+    command:
+      [
+        "uv",
+        "run",
+        "--no-sync",
+        "celery",
+        "-A",
+        "audittrail_api.workers.celery_app:celery_app",
+        "worker",
+        "--loglevel=INFO",
+      ]
+    environment:
+      AUDITTRAIL_ENVIRONMENT: development
+      AUDITTRAIL_DATABASE_URL: postgresql+asyncpg://audittrail:audittrail@postgres:5432/audittrail
+      AUDITTRAIL_ADMIN_TOKEN: local-compose-admin-token
+      AUDITTRAIL_API_KEY_PEPPER: local-compose-api-key-pepper
+      AUDITTRAIL_REDIS_URL: redis://redis:6379/0
+      AUDITTRAIL_EXPORT_DISPATCH_MODE: celery
+      AUDITTRAIL_EXPORT_DIRECTORY: /app/exports
+    depends_on:
+      api:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    volumes:
+      - export_data:/app/exports
 
   postgres:
     image: postgres:17-alpine
@@ -47,3 +81,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  export_data:
