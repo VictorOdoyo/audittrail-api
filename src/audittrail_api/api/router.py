@@ -3,6 +3,7 @@
 from fastapi import APIRouter
 
 from audittrail_api.auth.router import router as auth_router
+from audittrail_api.dead_letters.router import router as dead_letters_router
 from audittrail_api.events.router import router as events_router
 from audittrail_api.exports.router import router as exports_router
 from audittrail_api.identity.auth_router import router as identity_auth_router
@@ -20,3 +21,4 @@ router.include_router(exports_router)
 router.include_router(user_router)
 router.include_router(identity_auth_router)
 router.include_router(membership_router)
+router.include_router(dead_letters_router)
