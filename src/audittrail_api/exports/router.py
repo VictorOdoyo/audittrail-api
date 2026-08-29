@@ -1,5 +1,6 @@
 """Scoped audit export endpoints."""
 
+import asyncio
 from pathlib import Path
 from uuid import UUID
 
@@ -67,7 +68,10 @@ async def download_export(
 ) -> FileResponse:
     require_scope(principal, "exports:write")
     job = await owned_export(session, job_id, principal.application_id)
-    if job.status != "completed" or not job.file_path or not Path(job.file_path).is_file():
+    if job.status != "completed" or not job.file_path:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Export file is not ready.")
+    file_exists = await asyncio.to_thread(Path(job.file_path).is_file)
+    if not file_exists:
         raise HTTPException(status.HTTP_409_CONFLICT, "Export file is not ready.")
     return FileResponse(
         job.file_path,

@@ -62,7 +62,7 @@ async def generate_export(
         query = query.where(AuditEvent.occurred_at <= occurred_before)
     events = list(await session.scalars(query.order_by(AuditEvent.occurred_at, AuditEvent.id)))
     rows = [EventRead.from_event(event).model_dump(mode="json") for event in events]
-    export_directory.mkdir(parents=True, exist_ok=True)
+    await asyncio.to_thread(export_directory.mkdir, parents=True, exist_ok=True)
     path = export_directory / f"{job.id}.{job.format}"
     writer = _write_json if job.format == "json" else _write_csv
     try:
