@@ -1,12 +1,14 @@
 """JWT authentication and organization authorization dependencies."""
 
+from collections.abc import Awaitable, Callable
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from audittrail_api.api.dependencies import RuntimeSettings, Session
-from audittrail_api.identity.models import User
+from audittrail_api.identity.models import Membership, User
 from audittrail_api.identity.tokens import TokenError, decode_access_token
 
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -38,3 +40,38 @@ async def get_current_user(
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+async def get_current_membership(
+    organization_id: UUID,
+    user: CurrentUser,
+    session: Session,
+) -> Membership:
+    from sqlalchemy import select
+
+    membership = await session.scalar(
+        select(Membership).where(
+            Membership.organization_id == organization_id,
+            Membership.user_id == user.id,
+        )
+    )
+    if membership is None:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Organization membership is required.")
+    return membership
+
+
+CurrentMembership = Annotated[Membership, Depends(get_current_membership)]
+
+
+def require_roles(*allowed_roles: str) -> Callable[[CurrentMembership], Awaitable[Membership]]:
+    """Create a dependency that admits only specified organization roles."""
+
+    async def authorize(membership: CurrentMembership) -> Membership:
+        if membership.role not in allowed_roles:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                "The current organization role cannot perform this action.",
+            )
+        return membership
+
+    return authorize
