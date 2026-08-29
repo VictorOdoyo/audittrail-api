@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     allowed_origins: list[str] = Field(default_factory=list)
     auto_create_schema: bool = True
     export_directory: Path = Path("exports")
+    redis_url: str = "redis://localhost:6379/0"
+    export_dispatch_mode: Literal["inline", "celery"] = "inline"
 
     @model_validator(mode="after")
     def reject_unsafe_production_defaults(self) -> "Settings":

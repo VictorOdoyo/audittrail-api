@@ -13,6 +13,7 @@ from audittrail_api.auth.dependencies import APIKeyAccess, require_scope
 from audittrail_api.exports.models import ExportJob
 from audittrail_api.exports.schemas import ExportCreate, ExportRead
 from audittrail_api.exports.service import generate_export
+from audittrail_api.workers.tasks import generate_export_task
 
 router = APIRouter(prefix="/exports", tags=["exports"])
 
@@ -47,6 +48,9 @@ async def create_export(
     session.add(job)
     await session.commit()
     await session.refresh(job)
+    if settings.export_dispatch_mode == "celery":
+        generate_export_task.delay(str(job.id))
+        return job
     return await generate_export(session, job, settings.export_directory)
 
 

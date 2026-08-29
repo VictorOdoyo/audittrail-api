@@ -66,3 +66,7 @@ python_version = "3.12"
 strict = true
 plugins = ["pydantic.mypy"]
 packages = ["audittrail_api"]
+
+[[tool.mypy.overrides]]
+module = ["celery", "celery.*"]
+ignore_missing_imports = true
