@@ -1,6 +1,7 @@
 """Application configuration loaded from environment variables."""
 
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal
 
 from pydantic import Field
@@ -24,6 +25,7 @@ class Settings(BaseSettings):
     api_key_pepper: str = Field(default="local-api-key-pepper", min_length=16)
     allowed_origins: list[str] = Field(default_factory=list)
     auto_create_schema: bool = True
+    export_directory: Path = Path("exports")
 
 
 @lru_cache
