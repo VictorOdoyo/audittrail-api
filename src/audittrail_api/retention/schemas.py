@@ -19,3 +19,17 @@ class RetentionPolicyRead(RetentionPolicyUpdate):
     organization_id: UUID
     created_at: datetime
     updated_at: datetime
+
+
+class ApplicationRetentionPreview(BaseModel):
+    application_id: UUID
+    candidate_count: int
+    anchor_hash: str | None
+
+
+class RetentionPreview(BaseModel):
+    organization_id: UUID
+    cutoff_at: datetime
+    legal_hold: bool
+    candidate_count: int
+    applications: list[ApplicationRetentionPreview]
