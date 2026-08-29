@@ -1,0 +1,49 @@
+services:
+  api:
+    build: .
+    environment:
+      AUDITTRAIL_ENVIRONMENT: development
+      AUDITTRAIL_DATABASE_URL: postgresql+asyncpg://audittrail:audittrail@postgres:5432/audittrail
+      AUDITTRAIL_ADMIN_TOKEN: local-compose-admin-token
+      AUDITTRAIL_API_KEY_PEPPER: local-compose-api-key-pepper
+      AUDITTRAIL_AUTO_CREATE_SCHEMA: "true"
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: audittrail
+      POSTGRES_USER: audittrail
+      POSTGRES_PASSWORD: audittrail
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U audittrail -d audittrail"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:8-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres_data:
+  redis_data:
