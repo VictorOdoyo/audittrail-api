@@ -72,3 +72,27 @@ from audittrail_api.events.models import AuditEvent  # noqa: E402
 class EventPage(BaseModel):
     items: list[EventRead]
     next_cursor: UUID | None
+
+
+class BatchEventCreate(BaseModel):
+    events: list[EventCreate] = Field(min_length=1, max_length=100)
+
+
+class BatchEventResult(BaseModel):
+    event_id: UUID
+    status: str
+    stored_id: UUID | None = None
+    detail: str | None = None
+
+
+class BatchIngestionResponse(BaseModel):
+    accepted: int
+    duplicates: int
+    rejected: int
+    results: list[BatchEventResult]
+
+
+class ChainVerificationResponse(BaseModel):
+    valid: bool
+    event_count: int
+    head_hash: str | None

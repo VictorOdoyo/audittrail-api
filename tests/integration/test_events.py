@@ -84,3 +84,43 @@ def test_event_scope_is_enforced() -> None:
         )
 
     assert response.status_code == 403
+
+
+def test_batch_reports_accepted_duplicate_and_rejected_items() -> None:
+    with TestClient(app) as client:
+        secret = provision_key(client, ["events:write", "events:read"])
+        headers = {"X-API-Key": secret}
+        duplicate_id = str(uuid4())
+        original = make_event(duplicate_id)
+        client.post("/api/v1/events", headers=headers, json=original)
+        response = client.post(
+            "/api/v1/events/batch",
+            headers=headers,
+            json={
+                "events": [
+                    make_event(),
+                    original,
+                    make_event(duplicate_id, action="invoice.rejected"),
+                ]
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json()["accepted"] == 1
+    assert response.json()["duplicates"] == 1
+    assert response.json()["rejected"] == 1
+
+
+def test_event_chain_can_be_verified() -> None:
+    with TestClient(app) as client:
+        secret = provision_key(client, ["events:write", "events:read"])
+        headers = {"X-API-Key": secret}
+        created = client.post("/api/v1/events", headers=headers, json=make_event()).json()
+        client.post("/api/v1/events", headers=headers, json=make_event())
+        verification = client.get("/api/v1/events/verify-chain", headers=headers)
+        fetched = client.get(f"/api/v1/events/{created['id']}", headers=headers)
+
+    assert verification.json()["valid"] is True
+    assert verification.json()["event_count"] == 2
+    assert fetched.status_code == 200
+    assert fetched.json()["id"] == created["id"]
