@@ -3,6 +3,7 @@
 from celery import Celery
 
 from audittrail_api.config import get_settings
+from audittrail_api.dead_letters import signals as dead_letter_signals  # noqa: F401
 
 settings = get_settings()
 celery_app = Celery(
