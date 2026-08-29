@@ -7,7 +7,7 @@ def test_user_and_membership_capture_identity_boundary() -> None:
     user = User(
         email="auditor@example.com",
         display_name="Example Auditor",
-        password_hash="stored-hash",
+        password_hash="stored-hash",  # noqa: S106
     )
     membership = Membership(
         organization_id=uuid4(),
