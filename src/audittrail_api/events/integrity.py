@@ -32,10 +32,10 @@ def chained_digest(payload_digest: str, previous_hash: str | None) -> str:
     return hashlib.sha256(chain_input).hexdigest()
 
 
-def verify_chain(events: Iterable[AuditEvent]) -> bool:
-    """Verify a sequence ordered from oldest to newest."""
+def verify_chain(events: Iterable[AuditEvent], initial_hash: str | None = None) -> bool:
+    """Verify an ordered sequence from genesis or a retention checkpoint."""
 
-    previous_hash: str | None = None
+    previous_hash = initial_hash
     for event in events:
         if event.previous_hash != previous_hash:
             return False

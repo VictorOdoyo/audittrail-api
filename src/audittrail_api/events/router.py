@@ -21,6 +21,7 @@ from audittrail_api.events.schemas import (
     EventRead,
 )
 from audittrail_api.events.service import ingest_event
+from audittrail_api.retention.models import RetentionCheckpoint
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -92,8 +93,14 @@ async def check_event_chain(
             .order_by(AuditEvent.received_at, AuditEvent.id)
         )
     )
+    checkpoint = await session.scalar(
+        select(RetentionCheckpoint).where(
+            RetentionCheckpoint.application_id == principal.application_id
+        )
+    )
+    initial_hash = checkpoint.anchor_hash if checkpoint else None
     return ChainVerificationResponse(
-        valid=verify_chain(events),
+        valid=verify_chain(events, initial_hash=initial_hash),
         event_count=len(events),
         head_hash=events[-1].event_hash if events else None,
     )

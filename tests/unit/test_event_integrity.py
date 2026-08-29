@@ -54,3 +54,16 @@ def test_chain_verification_detects_broken_links_and_hashes() -> None:
     assert verify_chain([valid]) is True
     assert verify_chain([broken_link]) is False
     assert verify_chain([broken_hash]) is False
+
+
+def test_chain_can_resume_from_retention_checkpoint() -> None:
+    payload_hash = content_digest(event_payload())
+    anchor = "c" * 64
+    event_hash = chained_digest(payload_hash, anchor)
+    retained = SimpleNamespace(
+        previous_hash=anchor,
+        content_hash=payload_hash,
+        event_hash=event_hash,
+    )
+
+    assert verify_chain([retained], initial_hash=anchor) is True
