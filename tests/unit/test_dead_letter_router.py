@@ -49,3 +49,31 @@ async def test_retry_rejects_an_already_retried_record() -> None:
         await retry_dead_letter(uuid4(), session, None)
 
     assert error.value.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_retry_rejects_unknown_task_types_without_dispatching() -> None:
+    record = MagicMock(status="pending", task_name="third.party.unsafe_task")
+    session = AsyncMock()
+    session.get.return_value = record
+
+    with (
+        patch("audittrail_api.dead_letters.router.celery_app.send_task") as send_task,
+        pytest.raises(HTTPException) as error,
+    ):
+        await retry_dead_letter(uuid4(), session, None)
+
+    assert error.value.status_code == 409
+    send_task.assert_not_called()
+    session.commit.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_retry_returns_not_found_for_missing_record() -> None:
+    session = AsyncMock()
+    session.get.return_value = None
+
+    with pytest.raises(HTTPException) as error:
+        await retry_dead_letter(uuid4(), session, None)
+
+    assert error.value.status_code == 404
