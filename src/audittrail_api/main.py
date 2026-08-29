@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from redis.asyncio import Redis
 
 from audittrail_api import __version__
 from audittrail_api.api.errors import install_error_handlers
@@ -24,11 +25,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     configure_logging()
 
     @asynccontextmanager
-    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    async def lifespan(lifespan_app: FastAPI) -> AsyncIterator[None]:
+        redis_client: Redis | None = None
         if runtime_settings.auto_create_schema:
             await create_schema()
-        yield
-        await close_database()
+        if runtime_settings.rate_limit_enabled:
+            redis_client = Redis.from_url(runtime_settings.redis_url, decode_responses=True)
+            await redis_client.ping()
+            lifespan_app.state.redis = redis_client
+        try:
+            yield
+        finally:
+            if redis_client is not None:
+                await redis_client.aclose()
+            await close_database()
 
     app = FastAPI(
         title=runtime_settings.app_name,
