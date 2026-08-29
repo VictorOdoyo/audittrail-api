@@ -65,3 +65,20 @@ def test_invalid_api_key_is_rejected() -> None:
     assert missing.status_code == 401
     assert malformed.status_code == 401
     assert unknown.status_code == 401
+
+
+def test_revoked_api_key_cannot_authenticate() -> None:
+    with TestClient(app) as client:
+        application_id = provision_application(client)
+        issued = client.post(
+            f"/api/v1/applications/{application_id}/api-keys",
+            headers=ADMIN_HEADERS,
+            json={"name": "Temporary reader", "scopes": ["events:read"]},
+        ).json()
+        client.delete(
+            f"/api/v1/applications/{application_id}/api-keys/{issued['id']}",
+            headers=ADMIN_HEADERS,
+        )
+        response = client.get("/api/v1/events", headers={"X-API-Key": issued["secret"]})
+
+    assert response.status_code == 401

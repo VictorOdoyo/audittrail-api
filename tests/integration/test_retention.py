@@ -34,12 +34,17 @@ def test_retention_policy_can_be_created_and_updated() -> None:
             headers=ADMIN_HEADERS,
             json={"retention_days": 730, "legal_hold": True, "updated_by": "auditor-2"},
         )
+        fetched = client.get(
+            f"/api/v1/organizations/{organization_id}/retention",
+            headers=ADMIN_HEADERS,
+        )
 
     assert missing.status_code == 404
     assert created.status_code == 200
     assert updated.json()["retention_days"] == 730
     assert updated.json()["legal_hold"] is True
     assert updated.json()["updated_by"] == "auditor-2"
+    assert fetched.json()["id"] == updated.json()["id"]
 
 
 def test_retention_policy_rejects_unsafe_window_and_unknown_tenant() -> None:

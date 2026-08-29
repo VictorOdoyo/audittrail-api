@@ -56,3 +56,32 @@ def test_application_requires_existing_organization() -> None:
         )
 
     assert response.status_code == 404
+
+
+def test_application_slug_is_unique_per_organization_and_apps_can_be_listed() -> None:
+    suffix = uuid4().hex[:8]
+    with TestClient(app) as client:
+        organization = client.post(
+            "/api/v1/organizations",
+            headers=ADMIN_HEADERS,
+            json={"name": "Application Tenant", "slug": f"application-{suffix}"},
+        ).json()
+        payload = {"name": "Access Service", "slug": "access-service"}
+        first = client.post(
+            f"/api/v1/organizations/{organization['id']}/applications",
+            headers=ADMIN_HEADERS,
+            json=payload,
+        )
+        duplicate = client.post(
+            f"/api/v1/organizations/{organization['id']}/applications",
+            headers=ADMIN_HEADERS,
+            json=payload,
+        )
+        listed = client.get(
+            f"/api/v1/organizations/{organization['id']}/applications",
+            headers=ADMIN_HEADERS,
+        )
+
+    assert first.status_code == 201
+    assert duplicate.status_code == 409
+    assert [item["id"] for item in listed.json()] == [first.json()["id"]]

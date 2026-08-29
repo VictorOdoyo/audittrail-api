@@ -1,9 +1,11 @@
 import json
 from datetime import UTC, datetime
+from unittest.mock import patch
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
+from audittrail_api.config import Settings, get_settings
 from audittrail_api.main import app
 
 ADMIN_HEADERS = {"Authorization": "Bearer local-admin-token"}
@@ -73,3 +75,63 @@ def test_export_requires_scope_and_hides_unknown_jobs() -> None:
         missing = client.get(f"/api/v1/exports/{uuid4()}", headers=headers)
 
     assert missing.status_code == 404
+
+
+def test_csv_export_applies_actor_and_time_filters() -> None:
+    occurred_at = datetime.now(UTC)
+    with TestClient(app) as client:
+        secret = provision_export_key(client)
+        headers = {"X-API-Key": secret}
+        client.post(
+            "/api/v1/events",
+            headers=headers,
+            json={
+                "event_id": str(uuid4()),
+                "occurred_at": occurred_at.isoformat(),
+                "actor_type": "user",
+                "actor_id": "auditor-7",
+                "action": "record.viewed",
+                "resource_type": "record",
+                "resource_id": "record-9",
+                "metadata": {"reason": "support"},
+            },
+        )
+        created = client.post(
+            "/api/v1/exports",
+            headers=headers,
+            json={
+                "format": "csv",
+                "filters": {
+                    "actor_id": "auditor-7",
+                    "occurred_after": occurred_at.isoformat(),
+                    "occurred_before": occurred_at.isoformat(),
+                },
+            },
+        ).json()
+        download = client.get(f"/api/v1/exports/{created['id']}/download", headers=headers)
+
+    assert download.status_code == 200
+    assert "record.viewed" in download.text
+    assert '""reason"": ""support""' in download.text
+
+
+def test_celery_mode_persists_pending_job_before_dispatch() -> None:
+    settings = Settings(export_dispatch_mode="celery", _env_file=None)
+    app.dependency_overrides[get_settings] = lambda: settings
+    try:
+        with (
+            patch("audittrail_api.exports.router.generate_export_task.delay") as delay,
+            TestClient(app) as client,
+        ):
+            secret = provision_export_key(client)
+            response = client.post(
+                "/api/v1/exports",
+                headers={"X-API-Key": secret},
+                json={"format": "json", "filters": {}},
+            )
+    finally:
+        app.dependency_overrides.pop(get_settings, None)
+
+    assert response.status_code == 201
+    assert response.json()["status"] == "pending"
+    delay.assert_called_once_with(response.json()["id"])
