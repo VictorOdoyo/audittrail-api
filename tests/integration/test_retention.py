@@ -42,6 +42,19 @@ def test_retention_policy_can_be_created_and_updated() -> None:
             f"/api/v1/organizations/{organization_id}/retention/preview",
             headers=ADMIN_HEADERS,
         )
+        blocked_run = client.post(
+            f"/api/v1/organizations/{organization_id}/retention/runs",
+            headers=ADMIN_HEADERS,
+        )
+        client.put(
+            f"/api/v1/organizations/{organization_id}/retention",
+            headers=ADMIN_HEADERS,
+            json={"retention_days": 730, "legal_hold": False, "updated_by": "auditor-2"},
+        )
+        completed_run = client.post(
+            f"/api/v1/organizations/{organization_id}/retention/runs",
+            headers=ADMIN_HEADERS,
+        )
 
     assert missing.status_code == 404
     assert created.status_code == 200
@@ -52,6 +65,9 @@ def test_retention_policy_can_be_created_and_updated() -> None:
     assert preview.status_code == 200
     assert preview.json()["legal_hold"] is True
     assert preview.json()["candidate_count"] == 0
+    assert blocked_run.status_code == 409
+    assert completed_run.json()["status"] == "completed"
+    assert completed_run.json()["run_id"] is not None
 
 
 def test_retention_policy_rejects_unsafe_window_and_unknown_tenant() -> None:

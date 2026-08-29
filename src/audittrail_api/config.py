@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     export_directory: Path = Path("exports")
     redis_url: str = "redis://localhost:6379/0"
     export_dispatch_mode: Literal["inline", "celery"] = "inline"
+    retention_dispatch_mode: Literal["inline", "celery"] = "inline"
     rate_limit_enabled: bool = False
     rate_limit_requests: int = Field(default=120, ge=1, le=100_000)
     rate_limit_window_seconds: int = Field(default=60, ge=1, le=3600)

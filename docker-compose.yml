@@ -9,6 +9,7 @@ services:
       AUDITTRAIL_AUTO_CREATE_SCHEMA: "true"
       AUDITTRAIL_REDIS_URL: redis://redis:6379/0
       AUDITTRAIL_EXPORT_DISPATCH_MODE: celery
+      AUDITTRAIL_RETENTION_DISPATCH_MODE: celery
       AUDITTRAIL_EXPORT_DIRECTORY: /app/exports
       AUDITTRAIL_RATE_LIMIT_ENABLED: "true"
       AUDITTRAIL_RATE_LIMIT_REQUESTS: "120"
@@ -43,6 +44,7 @@ services:
       AUDITTRAIL_API_KEY_PEPPER: local-compose-api-key-pepper
       AUDITTRAIL_REDIS_URL: redis://redis:6379/0
       AUDITTRAIL_EXPORT_DISPATCH_MODE: celery
+      AUDITTRAIL_RETENTION_DISPATCH_MODE: celery
       AUDITTRAIL_EXPORT_DIRECTORY: /app/exports
     depends_on:
       api:

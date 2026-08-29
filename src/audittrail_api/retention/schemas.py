@@ -33,3 +33,8 @@ class RetentionPreview(BaseModel):
     legal_hold: bool
     candidate_count: int
     applications: list[ApplicationRetentionPreview]
+
+
+class RetentionDispatch(BaseModel):
+    status: str
+    run_id: UUID | None = None

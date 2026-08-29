@@ -6,17 +6,19 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 
-from audittrail_api.api.dependencies import AdminAccess, Session
+from audittrail_api.api.dependencies import AdminAccess, RuntimeSettings, Session
 from audittrail_api.database.mixins import utc_now
 from audittrail_api.organizations.models import Organization
 from audittrail_api.retention.models import RetentionPolicy
 from audittrail_api.retention.schemas import (
     ApplicationRetentionPreview,
+    RetentionDispatch,
     RetentionPolicyRead,
     RetentionPolicyUpdate,
     RetentionPreview,
 )
-from audittrail_api.retention.service import build_retention_plan
+from audittrail_api.retention.service import LegalHoldError, build_retention_plan, execute_retention
+from audittrail_api.workers.tasks import execute_retention_task
 
 router = APIRouter(prefix="/organizations", tags=["retention"])
 
@@ -65,6 +67,30 @@ async def preview_retention(
         candidate_count=sum(item.candidate_count for item in applications),
         applications=applications,
     )
+
+
+@router.post("/{organization_id}/retention/runs", response_model=RetentionDispatch)
+async def run_retention(
+    organization_id: UUID,
+    session: Session,
+    settings: RuntimeSettings,
+    _: AdminAccess,
+) -> RetentionDispatch:
+    policy = await session.scalar(
+        select(RetentionPolicy).where(RetentionPolicy.organization_id == organization_id)
+    )
+    if policy is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Retention policy was not found.")
+    if policy.legal_hold:
+        raise HTTPException(status.HTTP_409_CONFLICT, "A legal hold blocks retention execution.")
+    if settings.retention_dispatch_mode == "celery":
+        execute_retention_task.delay(str(organization_id))
+        return RetentionDispatch(status="queued")
+    try:
+        run = await execute_retention(session, organization_id)
+    except LegalHoldError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    return RetentionDispatch(status=run.status, run_id=run.id)
 
 
 @router.put("/{organization_id}/retention", response_model=RetentionPolicyRead)
