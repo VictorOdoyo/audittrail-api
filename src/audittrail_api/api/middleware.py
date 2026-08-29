@@ -8,6 +8,8 @@ from uuid import uuid4
 from starlette.requests import Request
 from starlette.responses import Response
 
+from audittrail_api.observability.metrics import observe_request
+
 REQUEST_ID_HEADER = "X-Request-ID"
 logger = logging.getLogger("audittrail.request")
 
@@ -24,6 +26,9 @@ async def request_context_middleware(
     started_at = perf_counter()
     response = await call_next(request)
     response.headers[REQUEST_ID_HEADER] = request_id
+    duration_seconds = perf_counter() - started_at
+    route = getattr(request.scope.get("route"), "path", "unmatched")
+    observe_request(request.method, route, response.status_code, duration_seconds)
     logger.info(
         "request completed",
         extra={
@@ -31,7 +36,7 @@ async def request_context_middleware(
             "method": request.method,
             "path": request.url.path,
             "status_code": response.status_code,
-            "duration_ms": round((perf_counter() - started_at) * 1000, 2),
+            "duration_ms": round(duration_seconds * 1000, 2),
         },
     )
     return response
