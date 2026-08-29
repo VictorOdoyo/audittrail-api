@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, Mock
 
 import pytest
 
@@ -35,3 +35,27 @@ async def test_record_terminal_failure_updates_an_existing_record() -> None:
     assert record.error_type == "RuntimeError"
     session.commit.assert_awaited_once()
     session.refresh.assert_awaited_once_with(record)
+
+
+@pytest.mark.asyncio
+async def test_record_terminal_failure_creates_replayable_record() -> None:
+    session = AsyncMock()
+    session.scalar.return_value = None
+    session.add = Mock()
+
+    record = await record_terminal_failure(
+        session,
+        task_name="audittrail.execute_retention",
+        task_id="task-2",
+        args=("organization-1",),
+        kwargs={"force": False},
+        exception=TimeoutError("worker timeout"),
+    )
+
+    assert record.task_id == "task-2"
+    assert record.payload == {
+        "args": ["organization-1"],
+        "kwargs": {"force": False},
+    }
+    assert record.error_type == "TimeoutError"
+    session.add.assert_called_once_with(record)

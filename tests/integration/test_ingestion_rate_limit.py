@@ -1,11 +1,11 @@
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
 from audittrail_api.config import Settings, get_settings
-from audittrail_api.main import app
+from audittrail_api.main import create_app
 
 ADMIN_HEADERS = {"Authorization": "Bearer local-admin-token"}
 
@@ -39,28 +39,29 @@ def test_ingestion_returns_retry_window_when_limit_is_exhausted() -> None:
         _env_file=None,
     )
     redis = AsyncMock()
+    redis.ping.return_value = True
     redis.eval.return_value = [2, 37]
-    app.state.redis = redis
-    app.dependency_overrides[get_settings] = lambda: settings
-    try:
-        with TestClient(app) as client:
-            secret = provision_key(client)
-            response = client.post(
-                "/api/v1/events",
-                headers={"X-API-Key": secret},
-                json={
-                    "event_id": str(uuid4()),
-                    "occurred_at": datetime.now(UTC).isoformat(),
-                    "actor_type": "service",
-                    "actor_id": "limited-source",
-                    "action": "record.created",
-                    "resource_type": "record",
-                    "resource_id": "record-1",
-                    "metadata": {},
-                },
-            )
-    finally:
-        app.dependency_overrides.pop(get_settings, None)
+    limited_app = create_app(settings)
+    limited_app.dependency_overrides[get_settings] = lambda: settings
+    with (
+        patch("audittrail_api.main.Redis.from_url", return_value=redis),
+        TestClient(limited_app) as client,
+    ):
+        secret = provision_key(client)
+        response = client.post(
+            "/api/v1/events",
+            headers={"X-API-Key": secret},
+            json={
+                "event_id": str(uuid4()),
+                "occurred_at": datetime.now(UTC).isoformat(),
+                "actor_type": "service",
+                "actor_id": "limited-source",
+                "action": "record.created",
+                "resource_type": "record",
+                "resource_id": "record-1",
+                "metadata": {},
+            },
+        )
 
     assert response.status_code == 429
     assert response.headers["Retry-After"] == "37"
