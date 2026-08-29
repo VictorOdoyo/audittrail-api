@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: audittrail-config
+  namespace: audittrail
+data:
+  AUDITTRAIL_ENVIRONMENT: production
+  AUDITTRAIL_AUTO_CREATE_SCHEMA: "false"
+  AUDITTRAIL_ALLOWED_ORIGINS: "[]"
+  AUDITTRAIL_EXPORT_DIRECTORY: /var/lib/audittrail/exports
+  AUDITTRAIL_EXPORT_DISPATCH_MODE: celery
+  AUDITTRAIL_RETENTION_DISPATCH_MODE: celery
+  AUDITTRAIL_RATE_LIMIT_ENABLED: "true"
+  AUDITTRAIL_RATE_LIMIT_REQUESTS: "120"
+  AUDITTRAIL_RATE_LIMIT_WINDOW_SECONDS: "60"
+  AUDITTRAIL_JWT_ISSUER: audittrail-api
