@@ -1,7 +1,8 @@
 from datetime import UTC, datetime
+from types import SimpleNamespace
 from uuid import UUID
 
-from audittrail_api.events.integrity import chained_digest, content_digest
+from audittrail_api.events.integrity import chained_digest, content_digest, verify_chain
 from audittrail_api.events.schemas import EventCreate
 
 
@@ -29,3 +30,27 @@ def test_chain_digest_changes_with_previous_hash() -> None:
     digest = content_digest(event_payload())
 
     assert chained_digest(digest, None) != chained_digest(digest, "1" * 64)
+
+
+def test_chain_verification_detects_broken_links_and_hashes() -> None:
+    payload_hash = content_digest(event_payload())
+    valid_hash = chained_digest(payload_hash, None)
+    valid = SimpleNamespace(
+        previous_hash=None,
+        content_hash=payload_hash,
+        event_hash=valid_hash,
+    )
+    broken_link = SimpleNamespace(
+        previous_hash="f" * 64,
+        content_hash=payload_hash,
+        event_hash=valid_hash,
+    )
+    broken_hash = SimpleNamespace(
+        previous_hash=None,
+        content_hash=payload_hash,
+        event_hash="f" * 64,
+    )
+
+    assert verify_chain([valid]) is True
+    assert verify_chain([broken_link]) is False
+    assert verify_chain([broken_hash]) is False

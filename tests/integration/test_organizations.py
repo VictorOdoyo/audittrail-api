@@ -32,3 +32,27 @@ def test_create_organization_and_application() -> None:
     assert organization_response.status_code == 201
     assert application_response.status_code == 201
     assert application_response.json()["organization_id"] == organization_id
+
+
+def test_duplicate_organization_slug_conflicts() -> None:
+    suffix = uuid4().hex[:8]
+    payload = {"name": "Duplicate Tenant", "slug": f"duplicate-{suffix}"}
+    with TestClient(app) as client:
+        first = client.post("/api/v1/organizations", headers=ADMIN_HEADERS, json=payload)
+        duplicate = client.post("/api/v1/organizations", headers=ADMIN_HEADERS, json=payload)
+        listed = client.get("/api/v1/organizations", headers=ADMIN_HEADERS)
+
+    assert first.status_code == 201
+    assert duplicate.status_code == 409
+    assert any(item["id"] == first.json()["id"] for item in listed.json())
+
+
+def test_application_requires_existing_organization() -> None:
+    with TestClient(app) as client:
+        response = client.post(
+            f"/api/v1/organizations/{uuid4()}/applications",
+            headers=ADMIN_HEADERS,
+            json={"name": "Unknown Source", "slug": "unknown-source"},
+        )
+
+    assert response.status_code == 404

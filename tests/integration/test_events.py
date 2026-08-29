@@ -124,3 +124,41 @@ def test_event_chain_can_be_verified() -> None:
     assert verification.json()["event_count"] == 2
     assert fetched.status_code == 200
     assert fetched.json()["id"] == created["id"]
+
+
+def test_search_combines_supported_filters_and_missing_event_is_hidden() -> None:
+    occurred_at = datetime.now(UTC)
+    with TestClient(app) as client:
+        secret = provision_key(client, ["events:write", "events:read"])
+        headers = {"X-API-Key": secret}
+        payload = make_event()
+        payload["occurred_at"] = occurred_at.isoformat()
+        created = client.post("/api/v1/events", headers=headers, json=payload).json()
+        filtered = client.get(
+            "/api/v1/events",
+            headers=headers,
+            params={
+                "actor_id": "user-42",
+                "resource_type": "invoice",
+                "correlation_id": "request-200",
+                "occurred_after": occurred_at.isoformat(),
+                "occurred_before": occurred_at.isoformat(),
+            },
+        )
+        missing = client.get(f"/api/v1/events/{uuid4()}", headers=headers)
+
+    assert [item["id"] for item in filtered.json()["items"]] == [created["id"]]
+    assert missing.status_code == 404
+
+
+def test_batch_size_and_event_timezone_are_validated() -> None:
+    with TestClient(app) as client:
+        secret = provision_key(client, ["events:write"])
+        headers = {"X-API-Key": secret}
+        empty_batch = client.post("/api/v1/events/batch", headers=headers, json={"events": []})
+        payload = make_event()
+        payload["occurred_at"] = "2026-08-29T12:00:00"
+        naive_time = client.post("/api/v1/events", headers=headers, json=payload)
+
+    assert empty_batch.status_code == 422
+    assert naive_time.status_code == 422

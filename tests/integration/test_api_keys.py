@@ -43,3 +43,25 @@ def test_api_key_is_issued_once_and_can_be_revoked() -> None:
     assert issued["secret"].startswith("at_live_")
     assert "secret" not in list_response.json()[0]
     assert revoke_response.status_code == 204
+
+
+def test_key_cannot_be_issued_for_unknown_application() -> None:
+    with TestClient(app) as client:
+        response = client.post(
+            f"/api/v1/applications/{uuid4()}/api-keys",
+            headers=ADMIN_HEADERS,
+            json={"name": "Unknown key", "scopes": ["events:read"]},
+        )
+
+    assert response.status_code == 404
+
+
+def test_invalid_api_key_is_rejected() -> None:
+    with TestClient(app) as client:
+        missing = client.get("/api/v1/events")
+        malformed = client.get("/api/v1/events", headers={"X-API-Key": "too-short"})
+        unknown = client.get("/api/v1/events", headers={"X-API-Key": "at_live_unknown-secret"})
+
+    assert missing.status_code == 401
+    assert malformed.status_code == 401
+    assert unknown.status_code == 401
