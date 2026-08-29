@@ -29,6 +29,10 @@ jobs:
         run: uv run mypy src
       - name: Test with coverage
         run: uv run pytest --cov=audittrail_api --cov-report=term-missing
+      - name: Validate migrations
+        env:
+          AUDITTRAIL_DATABASE_URL: sqlite+aiosqlite:///./migration-ci.db
+        run: uv run alembic upgrade head
 
   container:
     runs-on: ubuntu-latest
