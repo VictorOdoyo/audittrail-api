@@ -5,7 +5,7 @@ from audittrail_api.events.models import AuditEvent
 from audittrail_api.exports.models import ExportJob
 from audittrail_api.identity.models import Membership, User
 from audittrail_api.organizations.models import Application, Organization
-from audittrail_api.retention.models import RetentionPolicy
+from audittrail_api.retention.models import RetentionCheckpoint, RetentionPolicy, RetentionRun
 
 __all__ = [
     "APIKey",
@@ -15,5 +15,7 @@ __all__ = [
     "Membership",
     "Organization",
     "RetentionPolicy",
+    "RetentionCheckpoint",
+    "RetentionRun",
     "User",
 ]
