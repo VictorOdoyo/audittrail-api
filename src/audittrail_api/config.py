@@ -31,12 +31,19 @@ class Settings(BaseSettings):
     rate_limit_enabled: bool = False
     rate_limit_requests: int = Field(default=120, ge=1, le=100_000)
     rate_limit_window_seconds: int = Field(default=60, ge=1, le=3600)
+    jwt_secret: str = Field(default="local-jwt-signing-secret-change-me", min_length=32)
+    jwt_issuer: str = "audittrail-api"
+    jwt_access_minutes: int = Field(default=15, ge=1, le=1440)
 
     @model_validator(mode="after")
     def reject_unsafe_production_defaults(self) -> "Settings":
         if self.environment != "production":
             return self
-        unsafe_values = {"local-admin-token", "local-api-key-pepper"}
+        unsafe_values = {
+            "local-admin-token",
+            "local-api-key-pepper",
+            "local-jwt-signing-secret-change-me",
+        }
         if self.admin_token in unsafe_values or self.api_key_pepper in unsafe_values:
             raise ValueError("Production requires explicitly configured secrets.")
         if self.auto_create_schema:

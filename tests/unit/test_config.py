@@ -23,6 +23,7 @@ def test_production_requires_migrations() -> None:
             environment="production",
             admin_token="a-production-management-secret",  # noqa: S106
             api_key_pepper="a-production-api-key-pepper",
+            jwt_secret="a-production-jwt-secret-with-enough-length",  # noqa: S106
             auto_create_schema=True,
             _env_file=None,
         )
