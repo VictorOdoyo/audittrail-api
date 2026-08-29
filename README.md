@@ -15,8 +15,12 @@ a durable record of who performed an action, what changed, and where the event o
 - Persisted JSON and CSV export jobs
 - Inline local exports and retrying Celery worker dispatch in Docker
 - Retention windows and legal holds
+- Chain-safe retention execution with integrity checkpoints
+- Human JWT accounts and organization role assignments
+- Redis-backed ingestion rate limits and Prometheus metrics
+- Durable dead-letter capture and guarded worker-task replay
 - Consistent problem responses and request correlation IDs
-- Liveness, readiness, migrations, coverage enforcement, and container CI
+- PostgreSQL contract tests, Kubernetes workloads, and container CI
 
 ## Requirements
 
@@ -122,6 +126,8 @@ workers or services.
 
 See [docs/architecture.md](docs/architecture.md) for design decisions and trust boundaries and
 [docs/api.md](docs/api.md) for the endpoint map and authentication requirements.
+Operational deployment and recovery procedures are in
+[docs/operations.md](docs/operations.md).
 
 ## Production configuration
 
@@ -134,6 +140,9 @@ Set at least these environment variables:
 - `AUDITTRAIL_AUTO_CREATE_SCHEMA=false`
 - `AUDITTRAIL_REDIS_URL`
 - `AUDITTRAIL_EXPORT_DISPATCH_MODE=celery`
+- `AUDITTRAIL_RETENTION_DISPATCH_MODE=celery`
+- `AUDITTRAIL_RATE_LIMIT_ENABLED=true`
+- `AUDITTRAIL_JWT_SECRET`
 
 The application refuses known development secrets and automatic schema creation in production.
 
