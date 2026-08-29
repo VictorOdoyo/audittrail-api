@@ -27,6 +27,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(lifespan_app: FastAPI) -> AsyncIterator[None]:
         redis_client: Redis | None = None
+        lifespan_app.state.redis = None
         if runtime_settings.auto_create_schema:
             await create_schema()
         if runtime_settings.rate_limit_enabled:
