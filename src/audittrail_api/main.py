@@ -13,12 +13,14 @@ from audittrail_api.api.router import router as api_router
 from audittrail_api.config import Settings, get_settings
 from audittrail_api.database.session import close_database, create_schema
 from audittrail_api.health.router import router as health_router
+from audittrail_api.logging import configure_logging
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     """Build an isolated application instance for production or tests."""
 
     runtime_settings = settings or get_settings()
+    configure_logging()
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
