@@ -14,8 +14,8 @@ __all__ = [
     "ExportJob",
     "Membership",
     "Organization",
-    "RetentionPolicy",
     "RetentionCheckpoint",
+    "RetentionPolicy",
     "RetentionRun",
     "User",
 ]

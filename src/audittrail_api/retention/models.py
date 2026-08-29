@@ -1,10 +1,9 @@
 """Organization retention policy model."""
 
+from datetime import datetime
 from uuid import UUID
 
-from datetime import datetime
-
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, JSON, String
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from audittrail_api.database.base import Base
