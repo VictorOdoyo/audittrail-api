@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: audittrail-api
+  namespace: audittrail
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 2m
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "5"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/limit-rps: "25"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - audittrail.example.com
+      secretName: audittrail-tls
+  rules:
+    - host: audittrail.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: audittrail-api
+                port:
+                  name: http
