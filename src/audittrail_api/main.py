@@ -14,6 +14,7 @@ from audittrail_api.config import Settings, get_settings
 from audittrail_api.database.session import close_database, create_schema
 from audittrail_api.health.router import router as health_router
 from audittrail_api.logging import configure_logging
+from audittrail_api.observability.router import router as observability_router
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -46,6 +47,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.middleware("http")(request_context_middleware)
     install_error_handlers(app)
     app.include_router(health_router)
+    app.include_router(observability_router)
     app.include_router(api_router)
     return app
 
